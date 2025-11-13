@@ -48,6 +48,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+docs/
 
 # Installer logs
 pip-log.txt
@@ -72,6 +73,10 @@ coverage.xml
 local_settings.py
 db.sqlite3
 media/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
 
 # Environments
 .env
