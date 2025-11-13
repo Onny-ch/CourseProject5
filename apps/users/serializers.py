@@ -57,4 +57,3 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "tg_chat_id",
             "timezone",
         )
-

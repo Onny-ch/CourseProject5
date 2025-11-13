@@ -2,6 +2,7 @@
 from datetime import time
 from unittest.mock import Mock, patch
 
+import pytz
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -10,17 +11,11 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
-import pytz
 
 from apps.habits.models import Habit
 
 from .models import Notification
-from .tasks import (
-    format_habit_message,
-    send_telegram_message,
-    send_daily_reminders,
-    send_habit_reminder,
-)
+from .tasks import format_habit_message, send_daily_reminders, send_habit_reminder, send_telegram_message
 
 User = get_user_model()
 
@@ -111,7 +106,9 @@ class NotificationModelTest(TestCase):
 
     def test_periodicity_validation_valid(self):
         """Тест валидации допустимой периодичности."""
-        for periodicity in range(Notification.MIN_PERIODICITY, Notification.MAX_PERIODICITY + 1):
+        for periodicity in range(
+            Notification.MIN_PERIODICITY, Notification.MAX_PERIODICITY + 1
+        ):
             notification = Notification(
                 user=self.user,
                 habit=self.habit,
@@ -177,6 +174,7 @@ class NotificationSerializerTest(TestCase):
     def test_validate_periodicity_min(self):
         """Тест валидации минимальной периодичности в сериализаторе."""
         from rest_framework.test import APIRequestFactory
+
         from .serializers import NotificationSerializer
 
         factory = APIRequestFactory()
@@ -196,6 +194,7 @@ class NotificationSerializerTest(TestCase):
     def test_validate_periodicity_max(self):
         """Тест валидации максимальной периодичности в сериализаторе."""
         from rest_framework.test import APIRequestFactory
+
         from .serializers import NotificationSerializer
 
         factory = APIRequestFactory()
@@ -215,6 +214,7 @@ class NotificationSerializerTest(TestCase):
     def test_validate_execution_time_max(self):
         """Тест валидации максимального времени выполнения в сериализаторе."""
         from rest_framework.test import APIRequestFactory
+
         from .serializers import NotificationSerializer
 
         factory = APIRequestFactory()
@@ -234,6 +234,7 @@ class NotificationSerializerTest(TestCase):
     def test_validate_habit_own_habit(self):
         """Тест валидации собственной привычки."""
         from rest_framework.test import APIRequestFactory
+
         from .serializers import NotificationSerializer
 
         factory = APIRequestFactory()
@@ -251,6 +252,7 @@ class NotificationSerializerTest(TestCase):
     def test_validate_habit_public_habit(self):
         """Тест валидации публичной привычки."""
         from rest_framework.test import APIRequestFactory
+
         from .serializers import NotificationSerializer
 
         factory = APIRequestFactory()
@@ -268,6 +270,7 @@ class NotificationSerializerTest(TestCase):
     def test_validate_habit_private_other_user(self):
         """Тест валидации приватной привычки другого пользователя."""
         from rest_framework.test import APIRequestFactory
+
         from .serializers import NotificationSerializer
 
         private_habit = Habit.objects.create(
@@ -334,7 +337,9 @@ class NotificationAPITest(APITestCase):
             "execution_time": 10,
         }
 
-        response = self.client.post(reverse("notification-list"), payload, format="json")
+        response = self.client.post(
+            reverse("notification-list"), payload, format="json"
+        )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Notification.objects.count(), 1)
         notification = Notification.objects.get()
@@ -349,7 +354,9 @@ class NotificationAPITest(APITestCase):
             "periodicity": 2,
         }
 
-        response = self.client.post(reverse("notification-list"), payload, format="json")
+        response = self.client.post(
+            reverse("notification-list"), payload, format="json"
+        )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         notification = Notification.objects.get()
         self.assertEqual(notification.habit, self.public_habit)
@@ -379,7 +386,9 @@ class NotificationAPITest(APITestCase):
             time=time(9, 0),
         )
 
-        response = self.client.get(reverse("notification-detail", kwargs={"pk": notification.id}))
+        response = self.client.get(
+            reverse("notification-detail", kwargs={"pk": notification.id})
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["habit"], self.habit.id)
 
@@ -490,7 +499,9 @@ class NotificationAPITest(APITestCase):
             mock_send.return_value = True
 
             response = self.client.post(
-                reverse("notification-send", kwargs={"notification_id": notification.id})
+                reverse(
+                    "notification-send", kwargs={"notification_id": notification.id}
+                )
             )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             notification.refresh_from_db()
@@ -557,6 +568,7 @@ class NotificationTasksTest(TestCase):
         mock_settings.TELEGRAM_URL = "https://api.telegram.org/bot"
 
         import requests
+
         mock_post.side_effect = requests.RequestException("Connection error")
 
         result = send_telegram_message("Тестовое сообщение", 123456789)
@@ -629,6 +641,7 @@ class NotificationTasksTest(TestCase):
         """Тест отправки ежедневных напоминаний при несовпадении времени."""
         # Устанавливаем текущее время
         from datetime import datetime
+
         now = datetime(2024, 1, 1, 10, 0, 0)
         now = pytz.UTC.localize(now)
         mock_timezone.now.return_value = now
@@ -653,6 +666,7 @@ class NotificationTasksTest(TestCase):
 
         # Устанавливаем текущее время
         from datetime import datetime, timedelta
+
         now = datetime(2024, 1, 2, 9, 0, 0)
         now = pytz.UTC.localize(now)
         mock_timezone.now.return_value = now
@@ -689,6 +703,7 @@ class NotificationTasksTest(TestCase):
 
         # Устанавливаем текущее время UTC (например, 6:00 UTC = 9:00 MSK)
         from datetime import datetime
+
         now = datetime(2024, 1, 1, 6, 0, 0)
         now = pytz.UTC.localize(now)
         mock_timezone.now.return_value = now

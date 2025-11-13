@@ -26,5 +26,3 @@ app.conf.timezone = "UTC"
 def debug_task(self):
     """Простая заглушка отладочной задачи."""
     print(f"Request: {self.request!r}")
-
-

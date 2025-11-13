@@ -19,4 +19,3 @@ urlpatterns = [
         name="notification-send",
     ),
 ] + router.urls
-

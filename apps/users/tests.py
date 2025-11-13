@@ -1,5 +1,4 @@
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -144,8 +143,6 @@ class UserAPITest(APITestCase):
             username="otheruser",
             password="testpass123",
         )
-        url = reverse("user-detail", kwargs={"pk": other_user.id})
-        response = self.client.get(url)
         # ViewSet возвращает объект, если он есть в queryset, но queryset фильтруется
         # Проверяем, что обычный пользователь не видит других пользователей в списке
         list_url = reverse("user-list")
@@ -179,11 +176,15 @@ class UserAPITest(APITestCase):
         url = reverse("user-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user_ids = [user["id"] for user in response.data["results"]]
+        self.assertIn(self.user.id, user_ids)
+        self.assertIn(other_user.id, user_ids)
         self.assertGreaterEqual(len(response.data["results"]), 2)
 
     def test_user_list_as_regular_user(self):
         """Тест получения списка пользователей как обычный пользователь."""
-        other_user = User.objects.create_user(
+        # Создаем другого пользователя для проверки фильтрации
+        User.objects.create_user(
             email="other@example.com",
             username="otheruser",
             password="testpass123",
@@ -223,4 +224,3 @@ class UserAPITest(APITestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.first_name, "Иван")
         self.assertEqual(self.user.last_name, "Иванов")
-

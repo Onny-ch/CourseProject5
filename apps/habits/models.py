@@ -68,7 +68,7 @@ class Habit(models.Model):
     def clean(self) -> None:
         super().clean()
 
-        if self.reward and self.related_habit_id:    
+        if self.reward and self.related_habit_id:
             raise ValidationError(
                 {
                     "reward": (

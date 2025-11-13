@@ -200,7 +200,9 @@ class TestHabitAPI(APITestCase):
         )
 
         self.client.credentials()
-        response = self.client.get(reverse("public-habit-detail", kwargs={"pk": habit.id}))
+        response = self.client.get(
+            reverse("public-habit-detail", kwargs={"pk": habit.id})
+        )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["action"], "Прогулка")
 

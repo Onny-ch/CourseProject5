@@ -16,8 +16,8 @@ if sys.platform == "win32":
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
-# Загружаем переменные окружения
-from dotenv import load_dotenv
+# Загружаем переменные окружения (после установки путей)
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(BASE_DIR / ".env")
 
@@ -45,19 +45,19 @@ try:
 
     # Проверяем существование базы данных
     db_name = os.getenv("DB_NAME", "habits")
-    cursor.execute(
-        "SELECT 1 FROM pg_database WHERE datname = %s", (db_name,)
-    )
+    cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
     exists = cursor.fetchone()
 
     if exists:
         print(f"[OK] База данных '{db_name}' существует")
     else:
         print(f"[ERROR] База данных '{db_name}' НЕ существует")
-        print(f"\nСоздайте базу данных командой:")
+        print("\nСоздайте базу данных командой:")
         print(f"  CREATE DATABASE {db_name} WITH ENCODING 'UTF8';")
         print("\nИли через psql:")
-        print(f"  psql -U {conn_params['user']} -c \"CREATE DATABASE {db_name} WITH ENCODING 'UTF8';\"")
+        print(
+            f"  psql -U {conn_params['user']} -c \"CREATE DATABASE {db_name} WITH ENCODING 'UTF8';\""
+        )
 
     cursor.close()
     conn.close()
@@ -73,4 +73,3 @@ except ImportError:
     print("[ERROR] psycopg2 не установлен. Установите: pip install psycopg2-binary")
 except Exception as e:
     print(f"[ERROR] Неожиданная ошибка: {e}")
-

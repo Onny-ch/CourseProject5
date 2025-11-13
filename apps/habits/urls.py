@@ -11,4 +11,3 @@ router.register(r"public-habits", PublicHabitViewSet, basename="public-habit")
 urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="api-register"),
 ] + router.urls
-

@@ -67,7 +67,7 @@ class Notification(models.Model):
     def clean(self) -> None:
         """Валидация полей уведомления."""
         super().clean()
-        
+
         if self.execution_time and self.execution_time > self.MAX_EXECUTION_TIME:
             raise ValidationError(
                 {
@@ -76,7 +76,7 @@ class Notification(models.Model):
                     )
                 }
             )
-        
+
         if not (self.MIN_PERIODICITY <= self.periodicity <= self.MAX_PERIODICITY):
             raise ValidationError(
                 {

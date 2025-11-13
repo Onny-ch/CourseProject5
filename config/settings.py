@@ -96,6 +96,7 @@ if DB_ENGINE:
         }
         # Устанавливаем кодировку через переменную окружения для psycopg2
         import os as os_module
+
         os_module.environ["PGCLIENTENCODING"] = "UTF8"
 else:
     # По умолчанию используем SQLite для разработки

@@ -1,7 +1,6 @@
 """Представления для приложения уведомлений."""
 import requests
 from django.conf import settings
-from django.db import models
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
@@ -37,7 +36,9 @@ def send_message(request, habit_id: int):
     notification = Notification.objects.filter(habit=habit, user=habit.user).first()
     if not notification:
         return Response(
-            {"error": "Сначала создайте уведомление с указанием времени для этой привычки"},
+            {
+                "error": "Сначала создайте уведомление с указанием времени для этой привычки"
+            },
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -50,7 +51,7 @@ def send_message(request, habit_id: int):
             {"error": "Telegram бот не настроен"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-    
+
     data = {
         "text": message,
         "chat_id": habit.user.tg_chat_id,
@@ -70,20 +71,26 @@ def send_message(request, habit_id: int):
         notification.save()
 
         return Response(
-            {"message": "Уведомление отправлено успешно", "notification_id": notification.id},
+            {
+                "message": "Уведомление отправлено успешно",
+                "notification_id": notification.id,
+            },
             status=status.HTTP_200_OK,
         )
     except requests.RequestException as e:
         # Оставляем уведомление как неотправленное
         error_message = str(e)
-        if hasattr(e, 'response') and e.response is not None:
+        if hasattr(e, "response") and e.response is not None:
             try:
                 error_detail = e.response.json()
                 error_message = f"{error_message}. Детали: {error_detail}"
-            except:
+            except Exception:
                 error_message = f"{error_message}. Ответ: {e.response.text}"
         return Response(
-            {"error": f"Не удалось отправить уведомление: {error_message}", "notification_id": notification.id},
+            {
+                "error": f"Не удалось отправить уведомление: {error_message}",
+                "notification_id": notification.id,
+            },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -93,9 +100,7 @@ def send_message(request, habit_id: int):
 def send_notification(request, notification_id: int):
     """API endpoint для отправки уведомления."""
     try:
-        notification = Notification.objects.get(
-            id=notification_id, user=request.user
-        )
+        notification = Notification.objects.get(id=notification_id, user=request.user)
     except Notification.DoesNotExist:
         return Response(
             {"error": "Уведомление не найдено"},

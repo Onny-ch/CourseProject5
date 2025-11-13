@@ -3,11 +3,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .serializers import (
-    UserRegistrationSerializer,
-    UserSerializer,
-    UserUpdateSerializer,
-)
+from .serializers import UserRegistrationSerializer, UserSerializer, UserUpdateSerializer
 
 User = get_user_model()
 
@@ -53,4 +49,3 @@ class UserViewSet(viewsets.ModelViewSet):
                 return Response(UserSerializer(request.user).data)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data)
-

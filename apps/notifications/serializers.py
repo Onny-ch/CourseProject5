@@ -67,4 +67,3 @@ class NotificationSerializer(serializers.ModelSerializer):
                     "Вы можете выбрать только свои привычки или публичные."
                 )
         return value
-

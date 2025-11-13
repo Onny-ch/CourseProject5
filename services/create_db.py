@@ -16,8 +16,8 @@ if sys.platform == "win32":
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
-# Загружаем переменные окружения
-from dotenv import load_dotenv
+# Загружаем переменные окружения (после установки путей)
+from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(BASE_DIR / ".env")
 
@@ -41,16 +41,14 @@ try:
 
     db_name = os.getenv("DB_NAME", "habits")
 
-    print(f"Подключение к PostgreSQL...")
+    print("Подключение к PostgreSQL...")
     conn = psycopg2.connect(**conn_params)
     conn.set_client_encoding("UTF8")
     conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     cursor = conn.cursor()
 
     # Проверяем существование базы данных
-    cursor.execute(
-        "SELECT 1 FROM pg_database WHERE datname = %s", (db_name,)
-    )
+    cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (db_name,))
     exists = cursor.fetchone()
 
     if exists:
@@ -59,7 +57,7 @@ try:
         print(f"Создание базы данных '{db_name}'...")
         # Используем template0 для избежания проблем с локалью
         cursor.execute(
-            f'CREATE DATABASE "{db_name}" WITH ENCODING \'UTF8\' TEMPLATE template0;'
+            f"CREATE DATABASE \"{db_name}\" WITH ENCODING 'UTF8' TEMPLATE template0;"
         )
         print(f"[OK] База данных '{db_name}' успешно создана с кодировкой UTF-8")
 
@@ -78,4 +76,3 @@ except Exception as e:
     import traceback
 
     traceback.print_exc()
-

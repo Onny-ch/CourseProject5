@@ -8,4 +8,3 @@ class IsOwner(BasePermission):
         if request.method in SAFE_METHODS:
             return obj.is_public or obj.user == request.user
         return obj.user == request.user
-
