@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "drf_yasg",
     "corsheaders",
+    "django_celery_beat",
     # Локальные приложения
     "apps.users",
     "apps.habits",
@@ -165,6 +166,7 @@ CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 
 SWAGGER_SETTINGS = {

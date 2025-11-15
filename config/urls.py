@@ -5,7 +5,6 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
-from rest_framework.authtoken.views import obtain_auth_token
 from rest_framework.permissions import AllowAny
 
 schema_view = get_schema_view(
@@ -20,7 +19,6 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/v1/auth/login/", obtain_auth_token, name="api-login"),
     path("api/v1/", include("apps.habits.urls")),
     path("api/v1/", include("apps.users.urls")),
     path("api/v1/", include("apps.notifications.urls")),

@@ -32,8 +32,8 @@ Backend часть SPA-приложения для отслеживания по
 - ✅ Настройка периодичности отправки (от 1 до 7 дней)
 
 ### Аутентификация и авторизация
-- ✅ Регистрация новых пользователей
-- ✅ Аутентификация по токену
+- ✅ Регистрация новых пользователей (через `/api/v1/auth/register/`)
+- ✅ Аутентификация по токену с использованием email
 - ✅ Управление профилем пользователя
 - ✅ Настройка часового пояса для корректной работы уведомлений
 
@@ -46,6 +46,7 @@ Backend часть SPA-приложения для отслеживания по
 - **Django 5.2.8** - веб-фреймворк
 - **Django REST Framework 3.16.1** - REST API
 - **Celery 5.5.3** - асинхронные задачи
+- **django-celery-beat 2.7.0** - планировщик задач для Celery Beat (хранение расписания в БД)
 - **Redis** - брокер сообщений для Celery
 - **PostgreSQL** - база данных (опционально, по умолчанию SQLite)
 - **drf-yasg** - документация API (Swagger/ReDoc)
@@ -139,6 +140,8 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
 python manage.py migrate
 ```
 
+   **Примечание:** Миграции создадут таблицы для `django-celery-beat`, которые используются для хранения расписания периодических задач в базе данных.
+
 9. **Создайте суперпользователя (опционально):**
 Данные для входа находятся по пути "users/management/commands/csu.py"
 ```bash
@@ -174,6 +177,8 @@ brew services start redis
 ```
 
 ## 🔄 Запуск Celery Worker и Beat
+
+**Примечание:** Проект использует `django-celery-beat` для хранения расписания периодических задач в базе данных. Это позволяет управлять расписанием через Django админку без перезапуска Celery Beat.
 
 ### Windows
 
@@ -304,7 +309,7 @@ POST /api/v1/auth/login/
 Content-Type: application/json
 
 {
-  "username": "username",
+  "email": "user@example.com",
   "password": "password123"
 }
 ```
@@ -315,6 +320,8 @@ Content-Type: application/json
   "token": "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
 }
 ```
+
+**Важно:** Авторизация выполняется по `email`, а не по `username`, так как в модели `User` используется `USERNAME_FIELD = "email"`.
 
 ### Привычки (Habits)
 
@@ -726,10 +733,10 @@ CourseProject5/
 │   │   ├── tasks.py    # Celery задачи
 │   │   └── tests.py    # Тесты
 │   └── users/           # Приложение пользователей
-│       ├── urls.py     # URL маршруты пользователей
-│       ├── views.py    # ViewSet и представления
+│       ├── urls.py     # URL маршруты пользователей (включая /auth/register/ и /auth/login/)
+│       ├── views.py    # ViewSet, RegisterView и LoginView
 │       ├── models.py   # Модели данных
-│       ├── serializers.py  # Сериализаторы
+│       ├── serializers.py  # Сериализаторы (включая UserLoginSerializer)
 │       └── tests.py    # Тесты
 ├── config/              # Настройки проекта
 │   ├── settings.py     # Основные настройки
@@ -746,14 +753,18 @@ CourseProject5/
 **Архитектура URL:**
 - Каждое приложение имеет свой `urls.py` с маршрутами
 - Главный `config/urls.py` подключает URL из всех приложений через `include()`
+- Эндпоинты аутентификации (`/auth/register/`, `/auth/login/`) находятся в приложении `users`
 - Это обеспечивает модульность и масштабируемость проекта
 
 ## ⚠️ Важные замечания
 
 1. **Windows и Celery**: На Windows обязательно используйте `--pool=solo` для worker
 2. **Redis**: Убедитесь, что Redis запущен перед запуском Celery
-3. **Telegram Bot**: Для работы уведомлений необходимо настроить Telegram бота
-4. **CORS**: В продакшене не используйте `CORS_ALLOW_ALL_ORIGINS=True`, укажите конкретные домены
+3. **django-celery-beat**: После установки зависимостей выполните миграции для создания таблиц планировщика: `python manage.py migrate`
+4. **Telegram Bot**: Для работы уведомлений необходимо настроить Telegram бота
+5. **CORS**: В продакшене не используйте `CORS_ALLOW_ALL_ORIGINS=True`, укажите конкретные домены
+6. **Авторизация**: Авторизация выполняется по `email`, а не по `username`. Используйте `/api/v1/auth/login/` с полями `email` и `password`
+7. **Регистрация**: Регистрация доступна только через `/api/v1/auth/register/`. Создание пользователей через `UserViewSet` запрещено
 
 ## 📄 Лицензия
 

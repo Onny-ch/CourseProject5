@@ -57,3 +57,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             "tg_chat_id",
             "timezone",
         )
+
+
+class UserLoginSerializer(serializers.Serializer):
+    """Сериализатор для авторизации пользователя по email."""
+
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True)
