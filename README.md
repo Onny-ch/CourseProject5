@@ -8,10 +8,13 @@ Backend часть SPA-приложения для отслеживания по
 - [Технологический стек](#технологический-стек)
 - [Установка и настройка](#установка-и-настройка)
 - [Запуск проекта](#запуск-проекта)
+  - [Локальный запуск (без Docker)](#локальный-запуск-без-docker)
+  - [Запуск с Docker](#запуск-с-docker)
 - [Запуск Celery Worker и Beat](#запуск-celery-worker-и-beat)
 - [API Эндпоинты](#api-эндпоинты)
 - [Интеграция для фронтенд разработчиков](#интеграция-для-фронтенд-разработчиков)
 - [Тестирование](#тестирование)
+- [CI/CD и Деплой](#cicd-и-деплой)
 - [Документация API](#документация-api)
 
 ## 🚀 Основные возможности
@@ -46,7 +49,7 @@ Backend часть SPA-приложения для отслеживания по
 - **Django 5.2.8** - веб-фреймворк
 - **Django REST Framework 3.16.1** - REST API
 - **Celery 5.5.3** - асинхронные задачи
-- **django-celery-beat 2.7.0** - планировщик задач для Celery Beat (хранение расписания в БД)
+- **django-celery-beat 2.8.1** - планировщик задач для Celery Beat (хранение расписания в БД)
 - **Redis** - брокер сообщений для Celery
 - **PostgreSQL** - база данных (опционально, по умолчанию SQLite)
 - **drf-yasg** - документация API (Swagger/ReDoc)
@@ -150,7 +153,9 @@ python manage.py csu
 
 ## 🏃 Запуск проекта
 
-### Запуск Django сервера
+### Локальный запуск (без Docker)
+
+#### Запуск Django сервера
 
 ```bash
 python manage.py runserver
@@ -158,7 +163,7 @@ python manage.py runserver
 
 Сервер будет доступен по адресу: `http://localhost:8000`
 
-### Запуск Redis
+#### Запуск Redis
 
 **Windows:**
 - Скачайте Redis для Windows или используйте WSL
@@ -264,6 +269,128 @@ sudo systemctl enable celery-beat
 sudo systemctl start celery-worker
 sudo systemctl start celery-beat
 ```
+
+### Запуск с Docker
+
+Проект полностью контейнеризирован с использованием Docker и Docker Compose. Это самый простой способ запустить все сервисы проекта.
+
+#### Требования
+
+- Docker (версия 20.10+)
+- Docker Compose (версия 2.0+)
+
+#### Быстрый старт
+
+1. **Создайте файл `.env`** на основе `env.example` и заполните необходимые переменные:
+
+```bash
+cp env.example .env
+```
+
+Убедитесь, что в `.env` указаны:
+```env
+DJANGO_SECRET_KEY=your-secret-key-here
+DJANGO_DEBUG=True
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=habits_db
+DB_USER=postgres
+DB_PASSWORD=postgres
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379/0
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+```
+
+2. **Запустите все сервисы:**
+
+```bash
+docker-compose up -d
+```
+
+Эта команда запустит:
+- **PostgreSQL** - база данных
+- **Redis** - брокер для Celery
+- **Django** - веб-приложение (Gunicorn)
+- **Celery Worker** - обработчик асинхронных задач
+- **Celery Beat** - планировщик задач
+- **Nginx** - веб-сервер и reverse proxy
+
+3. **Примените миграции и создайте суперпользователя:**
+
+```bash
+# Применить миграции
+docker-compose exec web python manage.py migrate
+
+# Создать суперпользователя
+docker-compose exec web python manage.py csu
+```
+
+4. **Проверьте статус сервисов:**
+
+```bash
+docker-compose ps
+```
+
+#### Доступ к сервисам
+
+- **API**: `http://localhost` (через Nginx)
+- **Django Admin**: `http://localhost/admin/`
+- **Swagger UI**: `http://localhost/api/docs/`
+- **ReDoc**: `http://localhost/api/redoc/`
+
+#### Полезные команды
+
+```bash
+# Просмотр логов всех сервисов
+docker-compose logs -f
+
+# Просмотр логов конкретного сервиса
+docker-compose logs -f web
+docker-compose logs -f celery
+docker-compose logs -f celery-beat
+
+# Остановка всех сервисов
+docker-compose down
+
+# Остановка с удалением volumes (БД будет очищена!)
+docker-compose down -v
+
+# Пересборка образов
+docker-compose build --no-cache
+
+# Выполнение команд в контейнере
+docker-compose exec web python manage.py shell
+docker-compose exec web python manage.py createsuperuser
+
+# Перезапуск конкретного сервиса
+docker-compose restart web
+docker-compose restart celery
+```
+
+#### Структура Docker контейнеров
+
+- **web** - Django приложение (Gunicorn)
+- **db** - PostgreSQL база данных
+- **redis** - Redis для Celery
+- **celery** - Celery Worker
+- **celery-beat** - Celery Beat планировщик
+- **nginx** - Nginx reverse proxy
+
+#### Переменные окружения для Docker
+
+Все переменные окружения читаются из файла `.env`. Docker Compose автоматически передает их в контейнеры.
+
+#### Production режим
+
+Для production используйте `docker-compose.prod.yml`:
+
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+Production конфигурация включает:
+- Больше воркеров для Gunicorn
+- Оптимизированные настройки
+- Отключенный DEBUG режим
 
 ## 📡 API Эндпоинты
 
@@ -656,6 +783,146 @@ pytest --cov=apps --cov-report=html
 - `apps/notifications/tests.py` - тесты для уведомлений
 - `apps/users/tests.py` - тесты для пользователей
 
+### Запуск тестов в Docker
+
+```bash
+# Запуск тестов в контейнере
+docker-compose exec web pytest
+
+# С покрытием кода
+docker-compose exec web pytest --cov=apps --cov-report=term-missing
+```
+
+## 🚀 CI/CD и Деплой
+
+Проект использует GitHub Actions для автоматизации CI/CD процесса.
+
+### Настройка CI/CD
+
+CI/CD pipeline настроен в файле `.github/workflows/ci-cd.yml` и выполняет следующие этапы:
+
+1. **Lint and Test** - проверка кода и запуск тестов
+   - Проверка кода с помощью `flake8`
+   - Проверка форматирования с помощью `isort` и `black`
+   - Запуск тестов с покрытием кода
+   - Загрузка отчета о покрытии в Codecov
+
+2. **Build Docker Images** - сборка Docker образов
+   - Проверка возможности сборки Docker образа
+   - Валидация `docker-compose.yml`
+
+3. **Deploy** - автоматический деплой на сервер (только для веток `main`/`master`)
+   - Подключение к серверу по SSH
+   - Обновление кода из репозитория
+   - Пересборка и перезапуск контейнеров
+   - Применение миграций
+   - Сбор статических файлов
+
+### Настройка GitHub Secrets
+
+Для работы деплоя необходимо настроить следующие секреты в настройках GitHub репозитория:
+
+1. Перейдите в **Settings** → **Secrets and variables** → **Actions**
+2. Добавьте следующие секреты:
+
+| Secret | Описание | Пример |
+|--------|----------|--------|
+| `SSH_HOST` | IP адрес или домен сервера | `192.168.1.100` или `example.com` |
+| `SSH_USER` | Имя пользователя для SSH | `deploy` |
+| `SSH_PRIVATE_KEY` | Приватный SSH ключ | Содержимое `~/.ssh/id_rsa` |
+| `SSH_PORT` | Порт SSH (опционально) | `22` |
+| `DEPLOY_PATH` | Путь к проекту на сервере | `/var/www/habits-tracker` |
+| `DEPLOY_URL` | URL развернутого приложения | `https://api.example.com` |
+
+### Генерация SSH ключа для деплоя
+
+```bash
+# На локальной машине
+ssh-keygen -t rsa -b 4096 -C "github-actions" -f ~/.ssh/github_actions_deploy
+
+# Скопируйте публичный ключ на сервер
+ssh-copy-id -i ~/.ssh/github_actions_deploy.pub user@your-server.com
+
+# Добавьте приватный ключ в GitHub Secrets
+cat ~/.ssh/github_actions_deploy
+```
+
+### Настройка сервера для деплоя
+
+1. **Установите Docker и Docker Compose на сервере:**
+
+```bash
+# Ubuntu/Debian
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo apt-get install docker-compose-plugin
+```
+
+2. **Клонируйте репозиторий на сервер:**
+
+```bash
+cd /var/www
+git clone https://github.com/your-username/CourseProject5.git habits-tracker
+cd habits-tracker
+```
+
+3. **Создайте файл `.env` на сервере:**
+
+```bash
+cp env.example .env
+nano .env  # Заполните все необходимые переменные
+```
+
+4. **Настройте права доступа:**
+
+```bash
+sudo chown -R $USER:$USER /var/www/habits-tracker
+```
+
+5. **Настройте firewall (если используется):**
+
+```bash
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+### Ручной деплой
+
+Если автоматический деплой не настроен, можно выполнить деплой вручную:
+
+```bash
+# На сервере
+cd /var/www/habits-tracker
+git pull origin main
+docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.prod.yml build --no-cache
+docker-compose -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
+docker-compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+```
+
+### Мониторинг деплоя
+
+Проверьте статус деплоя в GitHub:
+- Перейдите в **Actions** в репозитории
+- Выберите последний workflow run
+- Просмотрите логи каждого этапа
+
+### Откат изменений
+
+В случае проблем после деплоя:
+
+```bash
+# На сервере
+cd /var/www/habits-tracker
+git checkout <previous-commit-hash>
+docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.prod.yml build --no-cache
+docker-compose -f docker-compose.prod.yml up -d
+```
+
 ## 📚 Документация API
 
 ### Swagger UI
@@ -745,7 +1012,18 @@ CourseProject5/
 ├── services/            # Сервисные утилиты
 │   ├── check_db.py    # Скрипт проверки подключения к БД
 │   └── create_db.py   # Скрипт создания базы данных
+├── nginx/              # Конфигурация Nginx
+│   ├── nginx.conf     # Основной конфиг Nginx
+│   └── conf.d/         # Дополнительные конфигурации
+│       └── default.conf # Конфигурация для Django
+├── .github/            # GitHub Actions workflows
+│   └── workflows/
+│       └── ci-cd.yml  # CI/CD pipeline
 ├── manage.py           # Django management script
+├── Dockerfile          # Docker образ для Django приложения
+├── docker-compose.yml  # Docker Compose для разработки
+├── docker-compose.prod.yml  # Docker Compose для production
+├── .dockerignore       # Исключения для Docker build
 ├── requirements.txt    # Зависимости проекта
 └── .env               # Переменные окружения (создать на основе env.example)
 ```

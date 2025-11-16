@@ -5,12 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response
 
-from .serializers import (
-    UserLoginSerializer,
-    UserRegistrationSerializer,
-    UserSerializer,
-    UserUpdateSerializer,
-)
+from .serializers import UserLoginSerializer, UserRegistrationSerializer, UserSerializer, UserUpdateSerializer
 
 User = get_user_model()
 
