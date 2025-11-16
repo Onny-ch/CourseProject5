@@ -862,7 +862,7 @@ sudo apt-get install docker-compose-plugin
 
 ```bash
 cd /var/www
-git clone https://github.com/your-username/CourseProject5.git habits-tracker
+git clone https://github.com/Onny-ch/CourseProject5.git habits-tracker
 cd habits-tracker
 ```
 
