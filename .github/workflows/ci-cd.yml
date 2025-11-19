@@ -131,6 +131,7 @@ jobs:
 
       - name: Test Docker Compose build
         run: |
+          touch .env
           docker compose config
 
   deploy:
