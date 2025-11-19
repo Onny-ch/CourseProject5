@@ -15,7 +15,12 @@ from rest_framework.test import APITestCase
 from apps.habits.models import Habit
 
 from .models import Notification
-from .tasks import format_habit_message, send_daily_reminders, send_habit_reminder, send_telegram_message
+from .tasks import (
+    format_habit_message,
+    send_daily_reminders,
+    send_habit_reminder,
+    send_telegram_message,
+)
 
 User = get_user_model()
 
