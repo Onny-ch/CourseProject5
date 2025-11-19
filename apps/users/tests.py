@@ -126,7 +126,7 @@ class UserAPITest(APITestCase):
 
     def test_user_registration(self):
         """Тест регистрации нового пользователя."""
-        url = reverse("user-list")
+        url = reverse("api-register")
         data = {
             "email": "newuser@example.com",
             "username": "newuser",
