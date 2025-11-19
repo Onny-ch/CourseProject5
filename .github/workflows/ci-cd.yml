@@ -144,7 +144,6 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     environment:
       name: production
-      url: ${{ secrets.DEPLOY_URL }}
     
     steps:
       - name: Checkout code
