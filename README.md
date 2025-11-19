@@ -303,7 +303,7 @@ TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 2. **Запустите все сервисы:**
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Эта команда запустит:
@@ -318,16 +318,16 @@ docker-compose up -d
 
 ```bash
 # Применить миграции
-docker-compose exec web python manage.py migrate
+docker compose exec web python manage.py migrate
 
 # Создать суперпользователя
-docker-compose exec web python manage.py csu
+docker compose exec web python manage.py csu
 ```
 
 4. **Проверьте статус сервисов:**
 
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 #### Доступ к сервисам
@@ -341,29 +341,29 @@ docker-compose ps
 
 ```bash
 # Просмотр логов всех сервисов
-docker-compose logs -f
+docker compose logs -f
 
 # Просмотр логов конкретного сервиса
-docker-compose logs -f web
-docker-compose logs -f celery
-docker-compose logs -f celery-beat
+docker compose logs -f web
+docker compose logs -f celery
+docker compose logs -f celery-beat
 
 # Остановка всех сервисов
-docker-compose down
+docker compose down
 
 # Остановка с удалением volumes (БД будет очищена!)
-docker-compose down -v
+docker compose down -v
 
 # Пересборка образов
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Выполнение команд в контейнере
-docker-compose exec web python manage.py shell
-docker-compose exec web python manage.py createsuperuser
+docker compose exec web python manage.py shell
+docker compose exec web python manage.py createsuperuser
 
 # Перезапуск конкретного сервиса
-docker-compose restart web
-docker-compose restart celery
+docker compose restart web
+docker compose restart celery
 ```
 
 #### Структура Docker контейнеров
@@ -381,13 +381,13 @@ docker-compose restart celery
 
 #### Production режим
 
-Для production используйте `docker-compose.prod.yml`:
+Для production используйте `docker-compose.prod.yml` (если файл существует):
 
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-Production конфигурация включает:
+**Примечание:** В текущей конфигурации CI/CD используется `docker-compose.yml` для деплоя. Production конфигурация может включать:
 - Больше воркеров для Gunicorn
 - Оптимизированные настройки
 - Отключенный DEBUG режим
@@ -775,7 +775,7 @@ pytest --cov=apps --cov-report=term-missing
 pytest --cov=apps --cov-report=html
 ```
 
-Текущее покрытие: **93%**
+Текущее покрытие: **92%**
 
 ### Структура тестов
 
@@ -787,10 +787,10 @@ pytest --cov=apps --cov-report=html
 
 ```bash
 # Запуск тестов в контейнере
-docker-compose exec web pytest
+docker compose exec web pytest
 
 # С покрытием кода
-docker-compose exec web pytest --cov=apps --cov-report=term-missing
+docker compose exec web pytest --cov=apps --cov-report=term-missing
 ```
 
 ## 🚀 CI/CD и Деплой
@@ -803,15 +803,15 @@ CI/CD pipeline настроен в файле `.github/workflows/ci-cd.yml` и �
 
 1. **Lint and Test** - проверка кода и запуск тестов
    - Проверка кода с помощью `flake8`
-   - Проверка форматирования с помощью `isort` и `black`
+   - Проверка форматирования с помощью `black`
    - Запуск тестов с покрытием кода
    - Загрузка отчета о покрытии в Codecov
 
 2. **Build Docker Images** - сборка Docker образов
    - Проверка возможности сборки Docker образа
-   - Валидация `docker-compose.yml`
+   - Валидация `docker-compose.yml` конфигурации
 
-3. **Deploy** - автоматический деплой на сервер (только для веток `main`/`master`)
+3. **Deploy** - автоматический деплой на сервер (для веток `main`, `master`, `develop` и `features/**`)
    - Подключение к серверу по SSH
    - Обновление кода из репозитория
    - Пересборка и перезапуск контейнеров
@@ -830,9 +830,9 @@ CI/CD pipeline настроен в файле `.github/workflows/ci-cd.yml` и �
 | `SSH_HOST` | IP адрес или домен сервера | `192.168.1.100` или `example.com` |
 | `SSH_USER` | Имя пользователя для SSH | `deploy` |
 | `SSH_PRIVATE_KEY` | Приватный SSH ключ | Содержимое `~/.ssh/id_rsa` |
-| `SSH_PORT` | Порт SSH (опционально) | `22` |
-| `DEPLOY_PATH` | Путь к проекту на сервере | `/var/www/habits-tracker` |
-| `DEPLOY_URL` | URL развернутого приложения | `https://api.example.com` |
+| `SSH_PORT` | Порт SSH (опционально, по умолчанию 22) | `22` |
+| `DEPLOY_PATH` | Путь к проекту на сервере (обязательно) | `/var/www/habits-tracker` |
+| `DEPLOY_URL` | URL развернутого приложения (опционально, только для отображения в GitHub UI) | `https://api.example.com` |
 
 ### Генерация SSH ключа для деплоя
 
@@ -858,28 +858,54 @@ sudo sh get-docker.sh
 sudo apt-get install docker-compose-plugin
 ```
 
-2. **Клонируйте репозиторий на сервер:**
+2. **Создайте директорию для проекта с правами root и настройте права доступа:**
 
 ```bash
-cd /var/www
-git clone https://github.com/Onny-ch/CourseProject5.git habits-tracker
-cd habits-tracker
+# Создайте директорию с правами root
+sudo mkdir -p /var/www/habits-tracker
+
+# Дайте права вашему пользователю на эту директорию
+sudo chown -R $USER:$USER /var/www/habits-tracker
+
+# Установите права доступа
+sudo chmod -R 755 /var/www/habits-tracker
 ```
 
-3. **Создайте файл `.env` на сервере:**
+**Примечание:** Если вы используете другого пользователя для SSH деплоя, замените `$USER` на имя этого пользователя:
+```bash
+sudo chown -R deploy:deploy /var/www/habits-tracker
+```
+
+3. **Клонируйте репозиторий на сервер:**
+
+```bash
+cd /var/www/habits-tracker
+git clone https://github.com/Onny-ch/CourseProject5.git .
+# или если директория пустая
+git init
+git remote add origin https://github.com/Onny-ch/CourseProject5.git
+git fetch origin
+git checkout -b main origin/main
+```
+
+4. **Создайте файл `.env` на сервере:**
 
 ```bash
 cp env.example .env
 nano .env  # Заполните все необходимые переменные
 ```
 
-4. **Настройте права доступа:**
+5. **Настройте права доступа к Docker (если требуется):**
 
 ```bash
-sudo chown -R $USER:$USER /var/www/habits-tracker
+# Добавьте пользователя в группу docker (чтобы не использовать sudo)
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Или используйте sudo для всех команд docker (как настроено в CI/CD)
 ```
 
-5. **Настройте firewall (если используется):**
+6. **Настройте firewall (если используется):**
 
 ```bash
 sudo ufw allow 22/tcp
@@ -896,11 +922,12 @@ sudo ufw enable
 # На сервере
 cd /var/www/habits-tracker
 git pull origin main
-docker-compose -f docker-compose.prod.yml down
-docker-compose -f docker-compose.prod.yml build --no-cache
-docker-compose -f docker-compose.prod.yml up -d
-docker-compose -f docker-compose.prod.yml exec web python manage.py migrate
-docker-compose -f docker-compose.prod.yml exec web python manage.py collectstatic --noinput
+sudo docker compose -f docker-compose.yml down
+sudo docker compose -f docker-compose.yml build --no-cache
+sudo docker compose -f docker-compose.yml up -d
+sudo docker compose -f docker-compose.yml exec -T web python manage.py migrate
+sudo docker compose -f docker-compose.yml exec -T web python manage.py collectstatic --noinput
+sudo docker compose -f docker-compose.yml restart web
 ```
 
 ### Мониторинг деплоя
@@ -918,9 +945,9 @@ docker-compose -f docker-compose.prod.yml exec web python manage.py collectstati
 # На сервере
 cd /var/www/habits-tracker
 git checkout <previous-commit-hash>
-docker-compose -f docker-compose.prod.yml down
-docker-compose -f docker-compose.prod.yml build --no-cache
-docker-compose -f docker-compose.prod.yml up -d
+sudo docker compose -f docker-compose.yml down
+sudo docker compose -f docker-compose.yml build --no-cache
+sudo docker compose -f docker-compose.yml up -d
 ```
 
 ## 📚 Документация API
