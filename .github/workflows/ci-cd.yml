@@ -218,10 +218,10 @@ jobs:
               fi
             fi
             
-            # Запускаем Docker Compose
-            docker compose -f docker-compose.yml down
-            docker compose -f docker-compose.yml build --no-cache
-            docker compose -f docker-compose.yml up -d
-            docker compose -f docker-compose.yml exec -T web python manage.py migrate
-            docker compose -f docker-compose.yml exec -T web python manage.py collectstatic --noinput
-            docker compose -f docker-compose.yml restart web
+            # Запускаем Docker Compose (используем sudo для доступа к Docker daemon)
+            sudo docker compose -f docker-compose.yml down
+            sudo docker compose -f docker-compose.yml build --no-cache
+            sudo docker compose -f docker-compose.yml up -d
+            sudo docker compose -f docker-compose.yml exec -T web python manage.py migrate
+            sudo docker compose -f docker-compose.yml exec -T web python manage.py collectstatic --noinput
+            sudo docker compose -f docker-compose.yml restart web
