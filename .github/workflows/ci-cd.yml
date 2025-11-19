@@ -159,22 +159,51 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT || 22 }}
           script: |
-            cd ${{ secrets.DEPLOY_PATH }}
-            git fetch origin
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+            REPO_URL="https://github.com/${{ github.repository }}.git"
             
-            # Извлекаем имя ветки из github.ref (например, refs/heads/features/Course9_finalAssignment -> features/Course9_finalAssignment)
+            # Проверяем и создаем директорию, если её нет
+            if [ ! -d "$DEPLOY_PATH" ]; then
+              echo "Creating directory $DEPLOY_PATH"
+              mkdir -p "$DEPLOY_PATH"
+            fi
+            
+            cd "$DEPLOY_PATH" || exit 1
+            
+            # Инициализируем Git репозиторий, если его нет
+            if [ ! -d .git ]; then
+              echo "Initializing Git repository"
+              git init
+              git remote add origin "$REPO_URL" || git remote set-url origin "$REPO_URL"
+            else
+              # Обновляем remote URL на случай, если он изменился
+              git remote set-url origin "$REPO_URL" || git remote add origin "$REPO_URL"
+            fi
+            
+            # Извлекаем имя ветки из github.ref
             BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+            
+            # Получаем информацию о ветках
+            git fetch origin || exit 1
             
             # Проверяем существование ветки на удаленном репозитории и деплоим её
             if git ls-remote --heads origin "$BRANCH_NAME" | grep -q "$BRANCH_NAME"; then
-              git checkout "$BRANCH_NAME" || git checkout -b "$BRANCH_NAME" origin/"$BRANCH_NAME"
-              git pull origin "$BRANCH_NAME"
+              echo "Deploying branch: $BRANCH_NAME"
+              git checkout -B "$BRANCH_NAME" "origin/$BRANCH_NAME" || exit 1
             else
               # Если ветки нет на удаленном репозитории, используем main/master как fallback
-              git checkout main || git checkout master
-              git pull origin main || git pull origin master
+              echo "Branch $BRANCH_NAME not found, using main/master as fallback"
+              if git ls-remote --heads origin main | grep -q main; then
+                git checkout -B main origin/main || exit 1
+              elif git ls-remote --heads origin master | grep -q master; then
+                git checkout -B master origin/master || exit 1
+              else
+                echo "Error: Neither main nor master branch found"
+                exit 1
+              fi
             fi
             
+            # Запускаем Docker Compose
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml build --no-cache
             docker compose -f docker-compose.prod.yml up -d
