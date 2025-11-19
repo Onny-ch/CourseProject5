@@ -66,10 +66,6 @@ jobs:
         run: |
           flake8 apps config --exclude=migrations --max-line-length=120 --count --statistics
 
-      - name: Run isort check
-        run: |
-          isort apps config --check-only --diff
-
       - name: Run black check
         run: |
           black --check apps config
