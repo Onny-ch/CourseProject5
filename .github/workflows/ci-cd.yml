@@ -162,13 +162,28 @@ jobs:
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
             REPO_URL="https://github.com/${{ github.repository }}.git"
             
-            # Проверяем и создаем директорию, если её нет
+            # Проверяем существование директории
             if [ ! -d "$DEPLOY_PATH" ]; then
-              echo "Creating directory $DEPLOY_PATH"
-              mkdir -p "$DEPLOY_PATH"
+              echo "Error: Directory $DEPLOY_PATH does not exist"
+              echo "Please create it manually with proper permissions:"
+              echo "  sudo mkdir -p $DEPLOY_PATH"
+              echo "  sudo chown -R $USER:$USER $DEPLOY_PATH"
+              exit 1
             fi
             
-            cd "$DEPLOY_PATH" || exit 1
+            # Проверяем права на запись в директорию
+            if [ ! -w "$DEPLOY_PATH" ]; then
+              echo "Error: No write permission for directory $DEPLOY_PATH"
+              echo "Please fix permissions:"
+              echo "  sudo chown -R $USER:$USER $DEPLOY_PATH"
+              echo "  sudo chmod -R 755 $DEPLOY_PATH"
+              exit 1
+            fi
+            
+            cd "$DEPLOY_PATH" || {
+              echo "Error: Cannot change to directory $DEPLOY_PATH"
+              exit 1
+            }
             
             # Инициализируем Git репозиторий, если его нет
             if [ ! -d .git ]; then
