@@ -15,7 +15,12 @@ from rest_framework.test import APITestCase
 from apps.habits.models import Habit
 
 from .models import Notification
-from .tasks import format_habit_message, send_daily_reminders, send_habit_reminder, send_telegram_message
+from .tasks import (
+    format_habit_message,
+    send_daily_reminders,
+    send_habit_reminder,
+    send_telegram_message,
+)
 
 User = get_user_model()
 
@@ -447,19 +452,22 @@ class NotificationAPITest(APITestCase):
             time=time(9, 0),
         )
 
-        with patch("apps.notifications.views.requests.post") as mock_post:
-            mock_response = Mock()
-            mock_response.status_code = 200
-            mock_response.raise_for_status = Mock()
-            mock_post.return_value = mock_response
+        with patch("apps.notifications.views.settings") as mock_settings:
+            mock_settings.TELEGRAM_BOT_TOKEN = "test_token"
+            mock_settings.TELEGRAM_URL = "https://api.telegram.org/bot"
+            with patch("apps.notifications.views.requests.post") as mock_post:
+                mock_response = Mock()
+                mock_response.status_code = 200
+                mock_response.raise_for_status = Mock()
+                mock_post.return_value = mock_response
 
-            response = self.client.post(
-                reverse("habit-send-message", kwargs={"habit_id": self.habit.id})
-            )
-            self.assertEqual(response.status_code, status.HTTP_200_OK)
-            notification.refresh_from_db()
-            self.assertTrue(notification.is_sent)
-            self.assertIsNotNone(notification.sent_at)
+                response = self.client.post(
+                    reverse("habit-send-message", kwargs={"habit_id": self.habit.id})
+                )
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                notification.refresh_from_db()
+                self.assertTrue(notification.is_sent)
+                self.assertIsNotNone(notification.sent_at)
 
     def test_send_message_habit_not_found(self):
         """Тест отправки сообщения для несуществующей привычки."""
